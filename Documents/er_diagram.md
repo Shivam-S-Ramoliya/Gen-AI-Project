@@ -47,25 +47,25 @@ erDiagram
     technicalQuestionSchema {
         string question "Technical query"
         string intention "Interviewer rationale"
-        string answer "Recommended approach & answer"
+        string answer "Recommended approach and answer"
     }
 
     behavioralQuestionSchema {
-        string question "Behavioral / situational query"
+        string question "Behavioral or situational query"
         string intention "Interviewer rationale"
-        string answer "Recommended approach & answer"
+        string answer "Recommended approach and answer"
     }
 
     skillGapSchema {
         string skill "Identified lacking skill"
-        string severity "Enum: low | medium | high"
+        string severity "Enum: low or medium or high"
     }
 
     preparationPlanSchema {
         ObjectId _id PK "Sub-document ID"
-        int day "Day sequence number (1, 2, ...)"
+        int day "Day sequence number"
         string focus "Core topic focus for the day"
-        string[] tasks "Concrete daily actionable tasks"
+        array tasks "Concrete daily actionable tasks"
     }
 ```
 

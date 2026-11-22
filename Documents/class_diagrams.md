@@ -11,17 +11,17 @@ classDiagram
     direction TB
 
     class AuthRouter {
-        +post("/register", registerUserController)
-        +post("/login", loginUserController)
-        +get("/logout", logoutUserController)
-        +get("/get-me", authUser, getMeController)
+        +postRegister()
+        +postLogin()
+        +getLogout()
+        +getMe()
     }
 
     class InterviewRouter {
-        +post("/", authUser, uploadSingleResume, generateInterViewReportController)
-        +get("/", authUser, getAllInterviewReportsController)
-        +get("/report/:interviewId", authUser, getInterviewReportByIdController)
-        +post("/resume/pdf/:interviewReportId", authUser, generateResumePdfController)
+        +postGenerateReport()
+        +getAllReports()
+        +getReportById()
+        +postGenerateResumePdf()
     }
 
     class AuthMiddleware {

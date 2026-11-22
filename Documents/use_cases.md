@@ -19,18 +19,18 @@
 
 ```mermaid
 flowchart LR
-    Candidate((Candidate / Job Seeker))
-    Gemini((Google Gemini AI))
-    Puppeteer((Puppeteer Engine))
+    Candidate(["Candidate / Job Seeker"])
+    Gemini(["Google Gemini AI"])
+    Puppeteer(["Puppeteer Engine"])
 
-    subgraph AuthModule["Authentication & Session"]
+    subgraph AuthModule["Authentication and Session"]
         UC1["UC-1: Register Account"]
-        UC2["UC-2: Authenticate & Login"]
+        UC2["UC-2: Authenticate and Login"]
         UC3["UC-3: Terminate Session (Logout)"]
         UC4["UC-4: Verify Session (Get Profile)"]
     end
 
-    subgraph ReportModule["Interview Preparation & Reports"]
+    subgraph ReportModule["Interview Preparation and Reports"]
         UC5["UC-5: Generate AI Interview Assessment"]
         UC6["UC-6: Browse Report History"]
         UC7["UC-7: Inspect Detailed Report"]

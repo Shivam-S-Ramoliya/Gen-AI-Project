@@ -30,7 +30,7 @@ graph TB
         APP["Express Server Application"]
         CORS["CORS Middleware<br/>(origin: localhost:5173)"]
         COOKIE["Cookie Parser"]
-        AUTH_MW["Auth Middleware<br/>(JWT Verify & Blacklist Check)"]
+        AUTH_MW["Auth Middleware<br/>(JWT Verify and Blacklist Check)"]
         FILE_MW["Multer File Middleware<br/>(Memory Storage max 3MB)"]
 
         AUTH_CTRL["Auth Controller"]
@@ -50,7 +50,7 @@ graph TB
         MONGO[("MongoDB 7.0<br/>users, blacklistTokens, InterviewReport")]
     end
 
-    subgraph ServiceLayer["Services & Processing Engines"]
+    subgraph ServiceLayer["Services and Processing Engines"]
         PDF_PARSE["pdf-parse Engine<br/>(Buffer to Plaintext)"]
         AI_SVC["AI Service Layer"]
         PUPPETEER["Puppeteer Engine<br/>(Headless Chromium A4 PDF)"]
@@ -107,7 +107,7 @@ The primary value chain in Interview AI consists of three interconnected data fl
 ### 3.1 Report Generation Pipeline
 ```mermaid
 flowchart LR
-    A[Candidate PDF + Job & Self Description] --> B(Multer Memory Buffer)
+    A["Candidate PDF + Job and Self Description"] --> B(Multer Memory Buffer)
     B --> C[pdf-parse Plaintext Extraction]
     C --> D[Google Gemini GenAI]
     D -->|Zod Structured Output Validation| E(Structured Report Object)
@@ -125,7 +125,7 @@ flowchart LR
 ### 3.2 Tailored Resume PDF Compilation Pipeline
 ```mermaid
 flowchart LR
-    A[Candidate Requests Resume PDF] --> B[Retrieve Stored Report & Job Description]
+    A["Candidate Requests Resume PDF"] --> B["Retrieve Stored Report and Job Description"]
     B --> C[Gemini AI Resume Tailoring]
     C -->|ATS Optimized HTML| D[Headless Puppeteer Browser]
     D -->|Compiled A4 PDF Buffer| E[Binary Stream Download]

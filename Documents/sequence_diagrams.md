@@ -16,23 +16,23 @@ sequenceDiagram
     participant UserModel as MongoDB (users)
     participant JWT as JWT Engine
 
-    User->>Frontend: Enter username, email, password & submit
-    Frontend->>AuthRouter: POST /api/auth/register { username, email, password }
+    User->>Frontend: Enter username, email, password and submit
+    Frontend->>AuthRouter: POST /api/auth/register (username, email, password)
     AuthRouter->>AuthController: registerUserController(req, res)
-    AuthController->>UserModel: findOne({ $or: [ { username }, { email } ] })
+    AuthController->>UserModel: findOne({ username or email })
     
     alt User Already Exists
-        UserModel-->>AuthController: Existing user document
-        AuthController-->>Frontend: 400 Bad Request ("Account already exists...")
+        UserModel-->>AuthController: Existing user document found
+        AuthController-->>Frontend: 400 Bad Request (Account already exists)
         Frontend-->>User: Display error message
     else New User
         UserModel-->>AuthController: null
         AuthController->>AuthController: bcrypt.hash(password, 10)
-        AuthController->>UserModel: create({ username, email, password: hash })
+        AuthController->>UserModel: create(user credentials)
         UserModel-->>AuthController: Saved user instance
-        AuthController->>JWT: sign({ id: user._id, username }, JWT_SECRET, { expiresIn: '1d' })
+        AuthController->>JWT: sign({ id, username }, JWT_SECRET, 1d)
         JWT-->>AuthController: Generated token string
-        AuthController-->>Frontend: 201 Created + Set-Cookie: token=<jwt>; HttpOnly
+        AuthController-->>Frontend: 201 Created (Sets HTTP-only token cookie)
         Frontend-->>User: Redirect to Dashboard / Home
     end
 ```
@@ -51,23 +51,23 @@ sequenceDiagram
     participant UserModel as MongoDB (users)
     participant JWT as JWT Engine
 
-    User->>Frontend: Enter credentials & submit
-    Frontend->>AuthRouter: POST /api/auth/login { email, password }
+    User->>Frontend: Enter credentials and submit
+    Frontend->>AuthRouter: POST /api/auth/login (email, password)
     AuthRouter->>AuthController: loginUserController(req, res)
     AuthController->>UserModel: findOne({ email })
 
     alt User Not Found
         UserModel-->>AuthController: null
-        AuthController-->>Frontend: 401 Unauthorized ("Invalid credentials")
+        AuthController-->>Frontend: 401 Unauthorized (Invalid credentials)
     else User Exists
         UserModel-->>AuthController: User document with password hash
-        AuthController->>AuthController: bcrypt.compare(password, user.password)
+        AuthController->>AuthController: bcrypt.compare(password, hash)
         alt Password Mismatch
-            AuthController-->>Frontend: 401 Unauthorized ("Invalid credentials")
+            AuthController-->>Frontend: 401 Unauthorized (Invalid credentials)
         else Password Valid
-            AuthController->>JWT: sign({ id: user._id, username }, JWT_SECRET, { expiresIn: '1d' })
+            AuthController->>JWT: sign({ id, username }, JWT_SECRET, 1d)
             JWT-->>AuthController: Generated token
-            AuthController-->>Frontend: 200 OK + Set-Cookie: token=<jwt>; HttpOnly
+            AuthController-->>Frontend: 200 OK (Sets HTTP-only token cookie)
             Frontend-->>User: Authenticated view rendered
         end
     end
@@ -86,12 +86,12 @@ sequenceDiagram
     participant AuthController as Auth Controller
     participant BlacklistModel as MongoDB (blacklistTokens)
 
-    User->>Frontend: Click "Logout"
+    User->>Frontend: Click Logout
     Frontend->>AuthRouter: GET /api/auth/logout (Cookie: token)
     AuthRouter->>AuthController: logoutUserController(req, res)
-    AuthController->>BlacklistModel: create({ token: req.cookies.token })
+    AuthController->>BlacklistModel: create({ token })
     BlacklistModel-->>AuthController: Blacklist entry saved
-    AuthController-->>Frontend: 200 OK + Clear-Cookie: token
+    AuthController-->>Frontend: 200 OK (Clears token cookie)
     Frontend-->>User: Redirect to Login Page
 ```
 
@@ -111,21 +111,21 @@ sequenceDiagram
     Frontend->>AuthMiddleware: Protected Request (Cookie: token)
     
     alt Token Missing
-        AuthMiddleware-->>Frontend: 401 Unauthorized ("Token not provided.")
+        AuthMiddleware-->>Frontend: 401 Unauthorized (Token not provided)
     else Token Present
         AuthMiddleware->>BlacklistModel: findOne({ token })
         alt Token Is Blacklisted
             BlacklistModel-->>AuthMiddleware: Blacklist entry found
-            AuthMiddleware-->>Frontend: 401 Unauthorized ("token is invalid")
+            AuthMiddleware-->>Frontend: 401 Unauthorized (Token is invalid)
         else Token Is Active
             BlacklistModel-->>AuthMiddleware: null
             AuthMiddleware->>JWT: verify(token, JWT_SECRET)
             alt Signature Invalid or Expired
                 JWT-->>AuthMiddleware: Throws error
-                AuthMiddleware-->>Frontend: 401 Unauthorized ("Invalid token.")
+                AuthMiddleware-->>Frontend: 401 Unauthorized (Invalid token)
             else Valid Signature
-                JWT-->>AuthMiddleware: Decoded user payload { id, username }
-                AuthMiddleware->>TargetController: next() with req.user = decoded
+                JWT-->>AuthMiddleware: Decoded user payload (id, username)
+                AuthMiddleware->>TargetController: next() with req.user populated
                 TargetController-->>Frontend: Processed Response
             end
         end
@@ -148,22 +148,22 @@ sequenceDiagram
     participant Gemini as Google GenAI (gemini-3-flash-preview)
     participant DB as MongoDB (InterviewReport)
 
-    User->>Frontend: Select Resume PDF, enter Job & Self Description, click "Generate"
-    Frontend->>FileMiddleware: POST /api/interview/ (multipart/form-data)
+    User->>Frontend: Select Resume PDF, enter Job and Self Description, click Generate
+    Frontend->>FileMiddleware: POST /api/interview/ (multipart form-data)
     FileMiddleware->>FileMiddleware: Buffer resume in-memory (max 3MB)
     FileMiddleware->>Controller: generateInterViewReportController(req, res)
     
-    Controller->>PDFParse: new PDFParse(Uint8Array.from(req.file.buffer)).getText()
+    Controller->>PDFParse: Parse Uint8Array buffer and getText()
     PDFParse-->>Controller: Extracted resume text content
 
-    Controller->>AIService: generateInterviewReport({ resume, selfDescription, jobDescription })
-    AIService->>Gemini: models.generateContent({ model: "gemini-3-flash-preview", prompt, responseSchema: ZodSchema })
-    Gemini-->>AIService: Structured JSON { matchScore, technicalQuestions, behavioralQuestions, skillGaps, preparationPlan, title }
+    Controller->>AIService: generateInterviewReport(resume, selfDescription, jobDescription)
+    AIService->>Gemini: models.generateContent(prompt, responseSchema)
+    Gemini-->>AIService: Structured JSON (matchScore, Q and A, skillGaps, preparationPlan, title)
     AIService-->>Controller: Parsed AI evaluation data
 
-    Controller->>DB: create({ user: req.user.id, resume, selfDescription, jobDescription, ...interViewReportByAi })
+    Controller->>DB: create(report data with user ID)
     DB-->>Controller: Persisted InterviewReport document
-    Controller-->>Frontend: 201 Created + { message, interviewReport }
+    Controller-->>Frontend: 201 Created with interview report object
     Frontend-->>User: Navigate to /interview/:id and display full report
 ```
 
@@ -179,17 +179,15 @@ sequenceDiagram
     participant Controller as Interview Controller
     participant DB as MongoDB (InterviewReport)
 
-    %% Flow A: All Reports
-    Note over User, DB: Fetching All Historical Reports
+    Note over User, DB: Flow A: Fetching All Historical Reports
     User->>Frontend: Open Dashboard
     Frontend->>Controller: GET /api/interview/
-    Controller->>DB: find({ user: req.user.id }).sort({ createdAt: -1 }).select("-resume ...")
+    Controller->>DB: find({ user: req.user.id }) sort by createdAt desc
     DB-->>Controller: Compact report summaries
-    Controller-->>Frontend: 200 OK + { interviewReports: [...] }
+    Controller-->>Frontend: 200 OK with report summaries list
     Frontend-->>User: Display report history cards
 
-    %% Flow B: Specific Report
-    Note over User, DB: Fetching Single Report Details
+    Note over User, DB: Flow B: Fetching Single Report Details
     User->>Frontend: Click report card
     Frontend->>Controller: GET /api/interview/report/:interviewId
     Controller->>DB: findOne({ _id: interviewId, user: req.user.id })
@@ -198,8 +196,8 @@ sequenceDiagram
         Controller-->>Frontend: 404 Not Found
     else Report Found
         DB-->>Controller: Complete report document
-        Controller-->>Frontend: 200 OK + { interviewReport: {...} }
-        Frontend-->>User: Render Q&A, skill gaps, and day-wise roadmap
+        Controller-->>Frontend: 200 OK with complete report details
+        Frontend-->>User: Render Q and A, skill gaps, and day-wise roadmap
     end
 ```
 
@@ -218,23 +216,23 @@ sequenceDiagram
     participant Gemini as Google GenAI (gemini-3-flash-preview)
     participant Puppeteer as Puppeteer Headless Engine
 
-    User->>Frontend: Click "Download Tailored Resume"
+    User->>Frontend: Click Download Tailored Resume
     Frontend->>Controller: POST /api/interview/resume/pdf/:interviewReportId
     Controller->>DB: findById(interviewReportId)
-    DB-->>Controller: Stored report with resume & job description
+    DB-->>Controller: Stored report with resume and job description
 
-    Controller->>AIService: generateResumePdf({ resume, jobDescription, selfDescription })
-    AIService->>Gemini: models.generateContent({ prompt: "tailor resume for job description", responseSchema: { html } })
+    Controller->>AIService: generateResumePdf(resume, jobDescription, selfDescription)
+    AIService->>Gemini: models.generateContent(tailor resume prompt, responseSchema)
     Gemini-->>AIService: Structured JSON with HTML resume layout
 
     AIService->>Puppeteer: launch()
     Puppeteer-->>AIService: Browser instance
-    AIService->>Puppeteer: newPage() -> setContent(html, { waitUntil: "networkidle0" })
-    AIService->>Puppeteer: page.pdf({ format: "A4", margin: {...} })
+    AIService->>Puppeteer: newPage() and setContent(html)
+    AIService->>Puppeteer: page.pdf(format A4 with margins)
     Puppeteer-->>AIService: PDF Binary Buffer
     AIService->>Puppeteer: browser.close()
     AIService-->>Controller: Compiled PDF Buffer
 
-    Controller-->>Frontend: 200 OK (Content-Type: application/pdf, Content-Disposition: attachment)
-    Frontend-->>User: Prompt PDF download in browser ("resume_<id>.pdf")
+    Controller-->>Frontend: 200 OK (Content-Type: application/pdf)
+    Frontend-->>User: Prompt PDF download in browser (resume_reportId.pdf)
 ```
